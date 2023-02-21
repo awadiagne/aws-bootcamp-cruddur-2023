@@ -24,6 +24,7 @@ tasks:
       cd $THEIA_WORKSPACE_ROOT
 ```
 This task downloads the AWS CLI package, unpacks it and installs it with root privileges every time gitpod is launched.
+
 ![AWSCLI](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/AWS%20CLI%20with%20Gitpod.PNG)
 
 ### Create a new User and Generate AWS Access and Secret Keys
@@ -34,6 +35,8 @@ This task downloads the AWS CLI package, unpacks it and installs it with root pr
 - I created Access and Secret Keys for the new user
 - I created an Alias for the new user
 - I then downloaded the CSV files with the credentials
+
+![Bootcamp User](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Bootcamp%20User%20Created.PNG)
 
 ### Set Env Vars
 
@@ -56,7 +59,7 @@ gp env AWS_DEFAULT_REGION="*********"
 ```sh
 aws sts get-caller-identity
 ```
-
+![Id Set](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Id%20Correctly%20Set.PNG)
 
 ## Enable Billing 
 
@@ -67,6 +70,7 @@ I turned on Billing Alerts to receive alerts when the billing exceeds a threshol
 - Under `Billing Preferences`, I chose `Receive Billing Alerts`
 - Save Preferences
 
+![Billing Enabled](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Billing%20Alerts%20Activated.PNG)
 
 ## Creating a Billing Alarm
 
@@ -90,6 +94,8 @@ aws sns subscribe \
     --notification-endpoint example@email.com
 ```
 
+![Topic Subscription](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Topic%20Susbcription%20Created.PNG)
+
 - And finally, I confirmed the subscription in my mailbox.
 
 #### Create Alarm
@@ -101,6 +107,8 @@ aws sns subscribe \
 ```sh
 aws cloudwatch put-metric-alarm --cli-input-json file://files/json/alarm_config.json
 ```
+
+![Alarm Created](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/CloudWatch%20Alarm%20Created.PNG)
 
 ## Create an AWS Budget
 
@@ -121,6 +129,12 @@ aws budgets create-budget \
     --notifications-with-subscribers file://files/json/subscribers.json
 ```
 
-## Here I have recreated the Logical Architecture of Cruddur
+![Budget Created](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Budget%20Created.PNG)
 
+## Here I have recreated the Conceptual Architecture of Cruddur with LucidCharts
 
+![Cruddur Conceptual Archi](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Cruddur%20Conceptual%20Architecture.PNG)
+
+## Here I have recreated the Logical Architecture of Cruddur with LucidCharts
+
+![Cruddur Logical Archi](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Cruddur%20Logical%20Architecture.png)
