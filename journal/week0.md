@@ -24,6 +24,7 @@ tasks:
       cd $THEIA_WORKSPACE_ROOT
 ```
 This task downloads the AWS CLI package, unpacks it and installs it with root privileges every time gitpod is launched.
+![AWSCLI](journal/screenshots/AWS CLI with Gitpod.PNG)
 
 ### Create a new User and Generate AWS Access and Secret Keys
 
