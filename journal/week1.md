@@ -23,7 +23,7 @@ Follow this link to download the extension : https://code.visualstudio.com/docs/
 
 The endpoint is working by following this link: http:localhost:4567/api/activities/home 
 
-![Flask App Running](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Run_Flask_App.png)
+![Flask App Running](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Run_Flask_App.PNG)
 
 ### Create the Dockerfile
 
@@ -69,28 +69,28 @@ Also tried to run it in a detached mode and get the container id into an env var
     CONTAINER_ID=$(docker run --rm -p 4567:4567 -d -e FRONTEND_URL -e BACKEND_URL backend-flask)
 ```
 
-![Container App Running](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Run_Container_App.png)
+![Container App Running](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Run_Container_App.PNG)
 
 ### Get Running Container Ids
 
 ```sh
 docker ps
 ```
-![Get Running Containers](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Get_Running_Container_Ids.png)
+![Get Running Containers](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Get_Running_Container_Ids.PNG)
 
 ### Get Docker Images 
 
 ```sh
 docker images
 ```
-![Get Docker Images](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Get_Docker_Images.png)
+![Get Docker Images](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Get_Docker_Images.PNG)
 
 ### Testing Flask app with curl
 
 ```sh
 curl -X GET http://localhost:4567/api/activities/home -H "Accept: application/json" -H "Content-Type: application/json"
 ```
-![Backend Curl Test](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Backend_Curl_Test.png)
+![Backend Curl Test](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Backend_Curl_Test.PNG)
 
 ### Check Container Logs
 
@@ -104,28 +104,28 @@ docker logs $CONTAINER_ID -f
 ```sh
 docker run --rm -it curlimages/curl -X GET http://localhost:4567/api/activities/home -H "Accept: application/json" -H "Content-Type: application/json"
 ```
-![Curl Images Test](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Curl_Images_Test.png)
+![Curl Images Test](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Curl_Images_Test.PNG)
 
 ### Using busybox
 
 ```sh
 docker run --rm -it busybox
 ```
-![Busybox](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Busybox.png)
+![Busybox](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Busybox.PNG)
 
 ###  Access a Container
 
 ```sh
 docker exec -it $CONTAINER_ID /bin/bash
 ```
-![Access a Container](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Access_Container.png)
+![Access a Container](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Access_Container.PNG)
 
 ### Deleting the Image
 
 ```sh
 docker image rm backend-flask
 ```
-![Remove the image](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Remove_image.png)
+![Remove the image](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Remove_image.PNG)
 
 ### Overriding Ports
 
@@ -290,4 +290,4 @@ Then, we can build and run the containers with docker compose:
 docker compose up
 ```
 
-![Docker Compose Up](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Docker_Compose_Up.png)
+![Docker Compose Up](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_1/Docker_Compose_Up.PNG)
