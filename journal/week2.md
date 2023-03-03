@@ -4,26 +4,22 @@
 
 ### Instrument AWS X-Ray for Flask
 
-
 ```sh
 export AWS_REGION="us-east-1"
 gp env AWS_REGION="us-east-1"
 ```
 
-Add to the `backend-flask/requirements.txt`
-
+- Add to the `backend-flask/requirements.txt`
 ```py
 aws-xray-sdk
 ```
 
-Install python dependencies
-
+- Install python dependencies
 ```sh
 pip install -r requirements.txt
 ```
 
-Add to `app.py`
-
+- Add to `app.py`
 ```py
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
@@ -35,11 +31,10 @@ XRayMiddleware(app, xray_recorder)
 ```
 
 ### Setup AWS X-Ray Resources
-AWS X-Ray provides a complete view of requests as they travel through your application and filters visual data across payloads, functions, traces, services, APIs, and more with no-code and low-code motions.
+**AWS X-Ray** provides a complete view of requests as they travel through your application and filters visual data across payloads, functions, traces, services, APIs, and more with no-code and low-code motions.
 The X-Ray SDK and AWS services that support active tracing with sampling configuration use sampling rules to determine which requests to record.
 
-Add `aws/json/xray.json` that will represent our sampling rule
-
+- Add `aws/json/xray.json` that will represent our sampling rule
 ```json
 {
   "SamplingRule": {
@@ -59,7 +54,8 @@ Add `aws/json/xray.json` that will represent our sampling rule
 ```
 
 - Create X-Ray group
-Groups are a collection of traces that are defined by a filter expression. You can use groups to generate additional service graphs and supply Amazon CloudWatch metrics.
+**Groups** are a collection of traces that are defined by a filter expression. You can use groups to generate additional service graphs and supply Amazon CloudWatch metrics.
+
 Let's create an AWS XRay group
 
 ```sh
@@ -70,7 +66,7 @@ aws xray create-group \
 ```
 ![Create XRay Group](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/Create_XRay_Group.PNG)
 
-- Create the sample rule described in xray.json:
+- Create the **sample rule** described in xray.json:
 
 ```sh
 aws xray create-sampling-rule --cli-input-json file://aws/json/xray.json
@@ -83,7 +79,7 @@ Now, we can install XRay daemon. Useful links below:
 [X-Ray Docker Compose example](https://github.com/marjamis/xray/blob/master/docker-compose.yml)
 
 - Install XRay daemon:
-The AWS X-Ray daemon is a software application that listens for traffic on UDP port 2000, gathers raw segment data, and relays it to the AWS X-Ray API.
+The **AWS X-Ray daemon** is a software application that listens for traffic on UDP port 2000, gathers raw segment data, and relays it to the AWS X-Ray API.
 
 ```sh
  wget https://s3.us-east-2.amazonaws.com/aws-xray-assets.us-east-2/xray-daemon/aws-xray-daemon-3.x.deb
@@ -105,7 +101,7 @@ The AWS X-Ray daemon is a software application that listens for traffic on UDP p
       - 2000:2000/udp
 ```
 
-We need to add the following env vars to our backend-flask in our `docker-compose.yml` file
+- We need to add the following env vars to our backend-flask in our `docker-compose.yml` file
 ```yml
       AWS_XRAY_URL: "*4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}*"
       AWS_XRAY_DAEMON_ADDRESS: "xray-daemon:2000"
@@ -120,10 +116,11 @@ aws xray get-service-graph --start-time $(($EPOCH-600)) --end-time $EPOCH
 ![XRay Graph](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/XRay_Graph.PNG)
 
 ## HoneyComb
-When creating a new dataset in Honeycomb it will provide all these installation instructions
+**OpenTelemetry** is a collection of tools, APIs, and SDKs used to instrument, generate, collect, and export telemetry data (metrics, logs, and traces) to help in analyzing software’s performance and behavior.
+
+When creating a new dataset in Honeycomb it will provide all these installation instructions.
 
 - Let's add the following files to our `requirements.txt`
-
 ```
 opentelemetry-api 
 opentelemetry-sdk 
@@ -133,13 +130,11 @@ opentelemetry-instrumentation-requests
 ```
 
 - Let's run pip install to install them
-
 ```sh
 pip install -r requirements.txt
 ```
 
-- Let's update app.py as follows to take opentelemetry into account:
-
+- Let's update `app.py` as follows to take opentelemetry into account:
 ```py
 from opentelemetry import trace
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
@@ -149,8 +144,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 ```
 
-- Let's initialize tracing and an exporter that can send data to Honeycomb
-
+- Let's initialize tracing and an exporter that can send data to **Honeycomb**
 ```py
 provider = TracerProvider()
 processor = BatchSpanProcessor(OTLPSpanExporter())
@@ -160,7 +154,6 @@ tracer = trace.get_tracer(__name__)
 ```
 
 - Let's initialize automatic instrumentation with Flask
-
 ```py
 app = Flask(__name__)
 FlaskInstrumentor().instrument_app(app)
@@ -168,7 +161,6 @@ RequestsInstrumentor().instrument()
 ```
 
 - Then, we add the following Env Vars to `backend-flask` in docker compose:
-
 ```yml
 OTEL_EXPORTER_OTLP_ENDPOINT: "https://api.honeycomb.io"
 OTEL_EXPORTER_OTLP_HEADERS: "x-honeycomb-team=${HONEYCOMB_API_KEY}"
@@ -201,8 +193,7 @@ import logging
 from time import strftime
 ```
 
-- Configuring Logger to Use CloudWatch
-
+- Configuring Logger to Use **CloudWatch**
 ```py
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
@@ -222,7 +213,7 @@ def after_request(response):
     return response
 ```
 
-- We'll log something in the notification API endpoint fro example
+- We'll log something in the notification API endpoint for example
 ```py
 LOGGER.info('Hello Cloudwatch! from  /api/activities/home')
 ```
@@ -263,7 +254,6 @@ ROLLBAR_ACCESS_TOKEN: "${ROLLBAR_ACCESS_TOKEN}"
 ```
 
 - Import for Rollbar
-
 ```py
 import rollbar
 import rollbar.contrib.flask
