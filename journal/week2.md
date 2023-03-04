@@ -115,6 +115,12 @@ aws xray get-service-graph --start-time $(($EPOCH-600)) --end-time $EPOCH
 ```
 ![XRay Graph](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/XRay_Graph.PNG)
 
+![XRay Analytics](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/XRay_Analytics.PNG)
+
+![XRay Sending Logs](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/XRay_Sending_Logs.PNG)
+
+![XRay Traces](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/XRay_Traces.PNG)
+
 ## HoneyComb
 **OpenTelemetry** is a collection of tools, APIs, and SDKs used to instrument, generate, collect, and export telemetry data (metrics, logs, and traces) to help in analyzing software’s performance and behavior.
 
