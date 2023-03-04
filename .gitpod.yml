@@ -20,6 +20,8 @@ vscode:
   extensions:
     - 42Crunch.vscode-openapi
     - cweijan.vscode-postgresql-client2
+    - ms-azuretools.vscode-docker
+    - amazonwebservices.aws-toolkit-vscode
 
 ports:
   - name: frontend
