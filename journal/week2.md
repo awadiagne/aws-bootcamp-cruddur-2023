@@ -231,6 +231,8 @@ LOGGER.info('Hello Cloudwatch! from  /api/activities/home')
       AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
 ```
 
+![Cloudwatch Logs](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/Cloudwatch_Logs.PNG)
+
 ## Rollbar
 
 [Rollbar]https://rollbar.com/
