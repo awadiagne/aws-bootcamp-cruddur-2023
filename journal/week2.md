@@ -181,6 +181,12 @@ gp env HONEYCOMB_API_KEY="******************"
 gp env HONEYCOMB_SERVICE_NAME="Cruddur"
 ```
 
+![Honeycomb Logs](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/Honeycomb_Logs.PNG)
+
+![Honeycomb Logs With Spans](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/Honeycomb_Logs_With_Spans.PNG)
+
+![Honeycomb Logs With Attributes](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/Honeycomb_Logs_With_Attributes.PNG)
+
 ## CloudWatch Logs
 
 - Add to the `requirements.txt`
@@ -296,12 +302,6 @@ def rollbar_test():
     return "Hello World!"
 ```
 
-[Rollbar Flask Example](https://github.com/rollbar/rollbar-flask-example/blob/master/hello.py)
+![Rollbar Errors](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/Rollbar_Errors.PNG)
 
-### Results on Honeycomb
-
-![Honeycomb Logs](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/Honeycomb_Logs.PNG)
-
-![Honeycomb Logs With Spans](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/Honeycomb_Logs_With_Spans.PNG)
-
-![Honeycomb Logs With Attributes](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_2/Honeycomb_Logs_With_Attributes.PNG)
+See : [Rollbar Flask Example](https://github.com/rollbar/rollbar-flask-example/blob/master/hello.py)
