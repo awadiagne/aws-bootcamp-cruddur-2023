@@ -214,14 +214,14 @@ export default function DesktopSidebar(props) {
 
 ## Sign in Page
 
-Update the SigninPage.js as follows:
+Update the SigninPage.js by rewriting the onsubmit method as follows:
 
 ```js
 import { Auth } from 'aws-amplify';
 
 const [cognitoErrors, setCognitoErrors] = React.useState('');
 
-const onsubmit = async (event) => {
+  const onsubmit = async (event) => {
     setErrors('')
     event.preventDefault();
     Auth.signIn(email, password)
@@ -239,3 +239,19 @@ const onsubmit = async (event) => {
     return false
   }
 ```
+- Let's try to login with a user that does not exist:
+
+![User Not Exists](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/User_Not_Exists.PNG)
+
+- We'll manually create an user and test it by logging in:
+
+![Create_User_Manually](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/Create_User_Manually.PNG)
+
+- We then force the confirmation of the account by executing the folowing command with the right parameters:
+```
+  sh
+  aws cognito-idp admin-set-user-password --user-pool-id ************* --username ************* --password ************* --permanent
+```
+
+![Sign In Successful](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/Sign_In_Successful.PNG)
+
