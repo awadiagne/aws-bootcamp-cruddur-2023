@@ -331,3 +331,35 @@ const [cognitoErrors, setCognitoErrors] = React.useState('');
 
 ![User Confirmed](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/User_Confirmed.PNG)
 
+## Recovery
+
+- Update RecoverPage.js like this:
+```js
+  import { Auth } from 'aws-amplify';
+
+  const onsubmit_send_code = async (event) => {
+    event.preventDefault();
+    setCognitoErrors('')
+    Auth.forgotPassword(username)
+    .then((data) => setFormState('confirm_code') )
+    .catch((err) => setCognitoErrors(err.message) );
+    return false
+  }
+
+  const onsubmit_confirm_code = async (event) => {
+    event.preventDefault();
+    setCognitoErrors('')
+    if (password == passwordAgain){
+      Auth.forgotPasswordSubmit(username, code, password)
+      .then((data) => setFormState('success'))
+      .catch((err) => setCognitoErrors(err.message) );
+    } else {
+      setCognitoErrors('Passwords do not match')
+    }
+    return false
+  }
+```
+
+![Recover Password](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/Recover_Password.PNG)
+
+![Password Recovered](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/Password_Recovered.PNG)
