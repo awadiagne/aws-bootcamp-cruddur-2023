@@ -3,13 +3,12 @@ import React from "react";
 import { useParams } from 'react-router-dom';
 import {ReactComponent as Logo} from '../components/svg/logo.svg';
 
-// [TODO] Authenication
-import Cookies from 'js-cookie'
+import { Auth } from 'aws-amplify'
 
 export default function ConfirmationPage() {
   const [email, setEmail] = React.useState('');
   const [code, setCode] = React.useState('');
-  const [errors, setErrors] = React.useState('');
+  const [errors, setCognitoErrors] = React.useState('');
   const [codeSent, setCodeSent] = React.useState(false);
 
   const params = useParams();
@@ -22,27 +21,29 @@ export default function ConfirmationPage() {
   }
 
   const resend_code = async (event) => {
-    console.log('resend_code')
-    // [TODO] Authenication
+    setCognitoErrors('')
+    try {
+      await Auth.resendSignUp(email);
+      console.log('code resent successfully');
+      setCodeSent(true)
+    } catch (err) {
+      console.log(err)
+      if (err.message == 'Username cannot be empty'){
+        setCognitoErrors("You need to provide an email in order to send Resend Activiation Code")   
+      } else if (err.message == "Username/client id combination not found."){
+        setCognitoErrors("Email is invalid or cannot be found.")   
+      }
+    }
   }
 
   const onsubmit = async (event) => {
     event.preventDefault();
-    console.log('ConfirmationPage.onsubmit')
-    // [TODO] Authenication
-    if (Cookies.get('user.email') === undefined || Cookies.get('user.email') === '' || Cookies.get('user.email') === null){
-      setErrors("You need to provide an email in order to send Resend Activiation Code")   
-    } else {
-      if (Cookies.get('user.email') === email){
-        if (Cookies.get('user.confirmation_code') === code){
-          Cookies.set('user.logged_in',true)
-          window.location.href = "/"
-        } else {
-          setErrors("Code is not valid")
-        }
-      } else {
-        setErrors("Email is invalid or cannot be found.")   
-      }
+    setCognitoErrors('')
+    try {
+      await Auth.confirmSignUp(email, code);
+      window.location.href = "/"
+    } catch (error) {
+      setCognitoErrors(error.message)
     }
     return false
   }
@@ -51,7 +52,6 @@ export default function ConfirmationPage() {
   if (errors){
     el_errors = <div className='errors'>{errors}</div>;
   }
-
 
   let code_button;
   if (codeSent){

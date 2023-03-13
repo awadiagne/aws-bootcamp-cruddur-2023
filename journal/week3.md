@@ -257,6 +257,7 @@ const [cognitoErrors, setCognitoErrors] = React.useState('');
 
 ## Signup Page
 
+- Update SignupPage.js like this:
 ```js
   import { Auth } from 'aws-amplify';
 
@@ -288,4 +289,45 @@ const [cognitoErrors, setCognitoErrors] = React.useState('');
     return false
   }
 ```
+
+## Confirmation Page
+
+- Update ConfirmationPage.js like this:
+```js
+
+  import { Auth } from 'aws-amplify'
+
+  const resend_code = async (event) => {
+    setCognitoErrors('')
+    try {
+      await Auth.resendSignUp(email);
+      console.log('code resent successfully');
+      setCodeSent(true)
+    } catch (err) {
+      // does not return a code
+      // does cognito always return english
+      // for this to be an okay match?
+      console.log(err)
+      if (err.message == 'Username cannot be empty'){
+        setCognitoErrors("You need to provide an email in order to send Resend Activiation Code")   
+      } else if (err.message == "Username/client id combination not found."){
+        setCognitoErrors("Email is invalid or cannot be found.")   
+      }
+    }
+  }
+
+  const onsubmit = async (event) => {
+    event.preventDefault();
+    setCognitoErrors('')
+    try {
+      await Auth.confirmSignUp(email, code);
+      window.location.href = "/"
+    } catch (error) {
+      setCognitoErrors(error.message)
+    }
+    return false
+  }
+```
+
+![User Confirmed](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/User_Confirmed.PNG)
 
