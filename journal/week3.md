@@ -12,7 +12,7 @@ Using the AWS Console we'll create a Cognito User Group:
 
 ## Install AWS Amplify
 
-![AWS Amplify](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/AWS_Amplify.PNG)
+![AWS Amplify](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/AWS_Amplify.png)
 AWS Amplify is a complete solution that lets frontend web and mobile developers easily build, ship, and host full-stack applications on AWS, with the flexibility to leverage the breadth of AWS services as use cases evolve. No cloud expertise needed.
 Here we'll use the Amplify JavaScript library. Let's install Amplify in the frontend directory:
 
@@ -248,8 +248,7 @@ const [cognitoErrors, setCognitoErrors] = React.useState('');
 ![Create_User_Manually](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/Create_User_Manually.PNG)
 
 - We then force the confirmation of the account by executing the folowing command with the right parameters:
-```
-  sh
+```sh
   aws cognito-idp admin-set-user-password --user-pool-id ************* --username ************* --password ************* --permanent
 ```
 
@@ -363,3 +362,68 @@ const [cognitoErrors, setCognitoErrors] = React.useState('');
 ![Recover Password](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/Recover_Password.PNG)
 
 ![Password Recovered](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_3/Password_Recovered.PNG)
+
+## Authenticating Server Side
+
+- Add in the `HomeFeedPage.js` in the loadData method a header to pass along the access token
+
+```js
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem("access_token")}`
+  }
+```
+
+- Add AWS_COGNITO_USER_POOL_ID and AWS_COGNITO_USER_POOL_CLIENT_ID env vars to backend in docker-compose.yml
+```Dockerfile
+  AWS_COGNITO_USER_POOL_ID:****************
+  AWS_COGNITO_USER_POOL_CLIENT_ID::****************
+```
+
+- Add a class named CognitoJwtToken in **lib** directory with different methods to handle tokens
+![CognitoJwtToken](backend-flask/lib/cognito_jwt_token.py)
+
+- Handle the token in home:
+```py
+@app.route("/api/activities/home", methods=['GET'])
+def data_home():
+  access_token = extract_access_token(request.headers)
+  try:
+    claims = cognito_jwt_token.verify(access_token)
+    app.logger.debug("authenticated")
+    app.logger.debug(claims)
+    app.logger.debug(claims['username'])
+    data = HomeActivities.run(cognito_user_id=claims['username'])
+  except TokenVerifyError as e:
+    app.logger.debug(e)
+    app.logger.debug("unauthenticated")
+    data = HomeActivities.run()
+  return data, 200
+```
+
+- Show an extra crud if cognito user is authenticated:
+```py
+if cognito_user_id != None:
+        extra_crud = {
+          'uuid': '248959df-3079-4947-b847-9e0892d1bab4',
+          'handle':  'Severus Rogue',
+          'message': 'Always',
+          'created_at': (now - timedelta(hours=1)).isoformat(),
+          'expires_at': (now + timedelta(hours=12)).isoformat(),
+          'likes': 1042,
+          'replies': []
+        }
+        results.insert(0,extra_crud)
+```
+
+- Remove token on signing out:
+```py
+const signOut = async () => {
+    try {
+        await Auth.signOut({ global: true });
+        window.location.href = "/"
+        localStorage.removeItem("access_token")
+    } catch (error) {
+        console.log('error signing out: ', error);
+    }
+  }
+```
