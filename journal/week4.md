@@ -81,3 +81,9 @@ DROP database cruddur;
 CREATE database cruddur;
 ```
 
+## Import Script
+
+- We'll create a new SQL file called `schema.sql`and we'll place it in `backend-flask/db`. Then, we'll import the schema into our DB:
+```
+psql cruddur < db/schema.sql -h localhost -U postgres
+```
