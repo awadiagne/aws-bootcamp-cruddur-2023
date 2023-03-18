@@ -83,7 +83,161 @@ CREATE database cruddur;
 
 ## Import Script
 
-- We'll create a new SQL file called `schema.sql`and we'll place it in `backend-flask/db`. Then, we'll import the schema into our DB:
+- We'll create a new SQL file called `schema.sql`and we'll place it in `backend-flask/db`. Then, after completing it, we'll import the schema into our DB.
+
+- Let's export our connection URL as an env variable to use it directly instead of having to type it:
+
+```sh
+export CONNECTION_URL="postgresql://postgres:password@localhost:5432/cruddur"
+gp env CONNECTION_URL="postgresql://postgres:password@localhost:5432/cruddur"
+psql $CONNECTION_URL
 ```
+```sh
+export PROD_CONNECTION_URL="postgresql://cruddurroot:passer123@cruddur-db-instance.cit7lutnkfzz.us-east-1.rds.amazonaws.com:5432/cruddur"
+gp env PROD_CONNECTION_URL="postgresql://cruddurroot:passer123@cruddur-db-instance.cit7lutnkfzz.us-east-1.rds.amazonaws.com:5432/cruddur"
+psql $PROD_CONNECTION_URL
+```
+
+## Add UUID Extension
+
+- We are going to have Postgres generate out UUIDs. Let's add this command to our schema.sql to use that extension:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+
+- Now, let's import the schema.sql script and see the result:
+```
+cd backend-flask
 psql cruddur < db/schema.sql -h localhost -U postgres
 ```
+![Create Extension](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/Create_Extension.PNG)
+
+## Shell Script to Connect to DB
+
+For things we commonly need to do we can create a new directory called `bin`
+
+- We'll create an new folder called `bin` to hold all our bash scripts.
+
+```sh
+mkdir /workspace/aws-bootcamp-cruddur-2023/backend-flask/bin
+```
+
+We'll create a new bash script `bin/db-connect`
+
+```sh
+#! /usr/bin/bash
+
+psql $CONNECTION_URL
+```
+
+We'll make it executable:
+
+```sh
+chmod u+x bin/db-connect
+```
+
+To execute the script:
+```sh
+./bin/db-connect
+```
+
+## Shell script to drop the database
+
+- Let's now write the bash script to drop the DB: `backend-flask/bin/db-drop`. We'll remove the string cruddur at the end of the env var because we can't drop a DB we're already connected to:
+
+```sh
+#! /usr/bin/bash
+
+NO_DB_CONNECTION_URL=$(sed 's/\/cruddur//g' <<<"$CONNECTION_URL")
+psql $NO_DB_CONNECTION_URL -c "DROP database cruddur;"
+```
+Ref: https://askubuntu.com/questions/595269/use-sed-on-a-string-variable-rather-than-a-file
+
+## See what connections we are using
+
+- Let's create the bash script to see the current connections to the DB: `backend-flask/bin/db-sessions`:
+
+```sh
+NO_DB_CONNECTION_URL=$(sed 's/\/cruddur//g' <<<"$CONNECTION_URL")
+psql $NO_DB_CONNECTION_URL -c "select pid as process_id, \
+       usename as user,  \
+       datname as db, \
+       client_addr, \
+       application_name as app,\
+       state \
+from pg_stat_activity;"
+```
+
+- We could have idle connections left open by our DB Explorer extension, try disconnecting and checking again the sessions
+
+## Shell script to create the database
+
+- Let's create the bash script to create the DB in `backend-flask/bin/db-create`:
+
+```sh
+#! /usr/bin/bash
+
+NO_DB_CONNECTION_URL=$(sed 's/\/cruddur//g' <<<"$CONNECTION_URL")
+createdb cruddur $NO_DB_CONNECTION_URL
+```
+
+## Shell script to load the schema
+
+- Let's create the bash script to load the schema into the DB in `backend-flask/bin/db-schema-load`
+
+```sh
+#! /usr/bin/bash
+
+schema_path="$(realpath .)/db/schema.sql"
+
+echo $schema_path
+
+NO_DB_CONNECTION_URL=$(sed 's/\/cruddur//g' <<<"$CONNECTION_URL")
+psql $NO_DB_CONNECTION_URL cruddur < $schema_path
+```
+
+## Shell script to load the seed data
+
+- Let's create the bash script to load the seed data into the DB in `backend-flask/bin/db-seed`
+
+```sh
+#! /usr/bin/bash
+
+schema_path="$(realpath .)/db/schema.sql"
+
+echo $schema_path
+
+psql $CONNECTION_URL cruddur < $schema_path
+```
+
+## Easily setup (reset) everything for our database
+
+- Let's create the bash script to setup the whole DB in `backend-flask/bin/db-setup`
+
+```sh
+#! /usr/bin/bash
+-e # stop if it fails at any point
+
+bin_path="$(realpath .)/bin"
+
+source "$bin_path/db-drop"
+source "$bin_path/db-create"
+source "$bin_path/db-schema-load"
+source "$bin_path/db-seed"
+```
+
+## Make prints nicer
+
+- Let's make prints for our shell scripts coloured so we can see what we're doing.
+
+https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux
+Let's add these lines to the scripts:
+
+```sh
+CYAN='\033[1;36m'
+NO_COLOR='\033[0m'
+LABEL="db-schema-load"
+printf "${CYAN}== ${LABEL}${NO_COLOR}\n"
+```
+
