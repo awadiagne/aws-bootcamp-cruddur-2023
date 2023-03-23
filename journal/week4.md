@@ -421,7 +421,7 @@ export DB_SG_RULE_ID="sgr-*****************"
 gp env DB_SG_RULE_ID="sgr-*****************"
 ```
 
-- Now, whenever we need to update our security groups, we can run the script `backend-flask/bin/db-update-sg-rule` this for access.
+- Now, whenever we need to update our security groups, we can run the script `backend-flask/bin/rds-update-sg-rule` this for access.
 ```sh
 #! /usr/bin/bash
 
@@ -429,6 +429,17 @@ aws ec2 modify-security-group-rules \
     --group-id $DB_SG_ID \
     --security-group-rules "SecurityGroupRuleId=$DB_SG_RULE_ID,SecurityGroupRule={Description=GITPOD IP,IpProtocol=tcp,FromPort=5432,ToPort=5432,CidrIpv4=$GITPOD_IP/32}"
 ```
+
+## Update Gitpod IP on new env var
+
+- Let's add a command step for postgres to update the RDS SG automatically at startup:
+
+```sh
+    command: |
+      export GITPOD_IP=$(curl ifconfig.me)
+      source "$THEIA_WORKSPACE_ROOT/backend-flask/rds-update-sg-rule"
+```
+
 
 ## Test remote access
 
