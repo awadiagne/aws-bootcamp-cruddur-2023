@@ -405,7 +405,7 @@ from lib.db import pool, query_wrap_array
 In order to connect to the RDS instance we need to provide our Gitpod IP and whitelist for inbound traffic on port 5432.
 
 ```sh
-GITPOD_IP=$(curl ifconfig.me)
+export GITPOD_IP=$(curl ifconfig.me)
 ```
 
 - Let's create an inbound rule for Postgres (5432) and provide the GITPOD ID.
@@ -423,9 +423,11 @@ gp env DB_SG_RULE_ID="sgr-*****************"
 
 - Now, whenever we need to update our security groups, we can run the script `backend-flask/bin/db-update-sg-rule` this for access.
 ```sh
+#! /usr/bin/bash
+
 aws ec2 modify-security-group-rules \
     --group-id $DB_SG_ID \
-    --security-group-rules "SecurityGroupRuleId=$DB_SG_RULE_ID,SecurityGroupRule={IpProtocol=tcp,FromPort=5432,ToPort=5432,CidrIpv4=$GITPOD_IP/32}"
+    --security-group-rules "SecurityGroupRuleId=$DB_SG_RULE_ID,SecurityGroupRule={Description=GITPOD IP,IpProtocol=tcp,FromPort=5432,ToPort=5432,CidrIpv4=$GITPOD_IP/32}"
 ```
 
 ## Test remote access
