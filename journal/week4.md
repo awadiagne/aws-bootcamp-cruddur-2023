@@ -399,3 +399,35 @@ from lib.db import pool, query_wrap_array
 - Now we can see on the frontend that the seeded data is being displayed
 
 ![Seeded Data Displayed](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/Seeded_Data_Displayed.PNG)
+
+## Connect to RDS via Gitpod
+
+In order to connect to the RDS instance we need to provide our Gitpod IP and whitelist for inbound traffic on port 5432.
+
+```sh
+GITPOD_IP=$(curl ifconfig.me)
+```
+
+- Let's create an inbound rule for Postgres (5432) and provide the GITPOD ID.
+
+![Updated RDS SG](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/Updated_RDS_SG.PNG)
+
+- We'll get the security group rule id so we can easily modify it in the future from the terminal here in Gitpod.
+
+```sh
+export DB_SG_ID="sg-*****************"
+gp env DB_SG_ID="sg-*****************"
+export DB_SG_RULE_ID="sgr-*****************"
+gp env DB_SG_RULE_ID="sgr-*****************"
+```
+
+- Now, whenever we need to update our security groups, we can run the script `backend-flask/bin/db-update-sg-rule` this for access.
+```sh
+aws ec2 modify-security-group-rules \
+    --group-id $DB_SG_ID \
+    --security-group-rules "SecurityGroupRuleId=$DB_SG_RULE_ID,SecurityGroupRule={IpProtocol=tcp,FromPort=5432,ToPort=5432,CidrIpv4=$GITPOD_IP/32}"
+```
+
+## Test remote access
+
+![RDS Remote Access](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/RDS_Remote_Access.PNG)
