@@ -317,3 +317,85 @@ VALUES
 
 ![Activities Seed](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/Activities_Seed.PNG)
 
+## Install Postgres Client
+
+Now, we want to implement a postgres client for python using a connection pool.
+
+- We need to set the env var for our backend-flask application:
+
+```yml
+  backend-flask:
+    environment:
+      CONNECTION_URL: "${CONNECTION_URL}"
+```
+
+- We'll add the following to our `backend-flask/requirements.txt` and install them:
+
+```
+psycopg[binary]
+psycopg[pool]
+```
+```sh
+pip install -r requirements.txt
+```
+
+## DB Object and Connection Pool
+
+- Let's create a file `lib/db.py` and use it to connect to the DB through a conection pool
+
+```py
+from psycopg_pool import ConnectionPool
+import os
+
+connection_url = os.getenv("CONNECTION_URL")
+pool = ConnectionPool(connection_url)
+
+def query_wrap_object(template):
+  sql = '''
+  (SELECT COALESCE(row_to_json(object_row),'{}'::json) FROM (
+  {template}
+  ) object_row);
+  '''
+
+def query_wrap_array(template):
+  sql = '''
+  (SELECT COALESCE(array_to_json(array_agg(row_to_json(array_row))),'[]'::json) FROM (
+  {template}
+  ) array_row);
+  '''
+```
+
+- In our home activities, we'll replace our mock endpoint with real api call:
+
+```py
+from lib.db import pool, query_wrap_array
+
+      sql = query_wrap_array("""
+      SELECT
+        activities.uuid,
+        users.display_name,
+        users.handle,
+        activities.message,
+        activities.replies_count,
+        activities.reposts_count,
+        activities.likes_count,
+        activities.reply_to_activity_uuid,
+        activities.expires_at,
+        activities.created_at
+      FROM public.activities
+      LEFT JOIN public.users ON users.uuid = activities.user_uuid
+      ORDER BY activities.created_at DESC
+      """)
+      print(sql)
+      with pool.connection() as conn:
+        with conn.cursor() as cur:
+          cur.execute(sql)
+          # this will return a tuple
+          # the first field being the data
+          json = cur.fetchall()
+      return json
+```
+
+- Now we can see on the frontend that the seeded data is being displayed
+
+![Seeded Data Displayed](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/Seeded_Data_Displayed.PNG)
