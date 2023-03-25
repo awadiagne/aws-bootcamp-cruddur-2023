@@ -1,33 +1,5 @@
 # Week 4 — Postgres and RDS
 
-## Provision RDS Instance
-
-- To create an RDS instance, let's run the command below:
-```sh
-aws rds create-db-instance \
-  --db-instance-identifier cruddur-db-instance \
-  --db-instance-class db.t3.micro \
-  --engine postgres \
-  --engine-version  14.6 \
-  --master-username cruddurroot \
-  --master-user-password ************** \
-  --allocated-storage 20 \
-  --availability-zone us-east-1a \
-  --backup-retention-period 0 \
-  --port 5432 \
-  --no-multi-az \
-  --db-name cruddur \
-  --storage-type gp2 \
-  --publicly-accessible \
-  --storage-encrypted \
-  --enable-performance-insights \
-  --performance-insights-retention-period 7 \
-  --no-deletion-protection
-```
-![DB Instance Created](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/DB_Instance_Created.PNG)
-
-- Stop the RDS instance when you aren't using it.
-
 ## Connect to PostgreSQL in local
 
 - Let's connect to PostgreSQL via the psql client cli tool with the host flag to specific localhost.
@@ -400,6 +372,34 @@ from lib.db import pool, query_wrap_array
 
 ![Seeded Data Displayed](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/Seeded_Data_Displayed.PNG)
 
+## Provision RDS Instance
+
+- To create an RDS instance, let's run the command below:
+```sh
+aws rds create-db-instance \
+  --db-instance-identifier cruddur-db-instance \
+  --db-instance-class db.t3.micro \
+  --engine postgres \
+  --engine-version  14.6 \
+  --master-username cruddurroot \
+  --master-user-password ************** \
+  --allocated-storage 20 \
+  --availability-zone us-east-1a \
+  --backup-retention-period 0 \
+  --port 5432 \
+  --no-multi-az \
+  --db-name cruddur \
+  --storage-type gp2 \
+  --publicly-accessible \
+  --storage-encrypted \
+  --enable-performance-insights \
+  --performance-insights-retention-period 7 \
+  --no-deletion-protection
+```
+![DB Instance Created](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/DB_Instance_Created.PNG)
+
+- Stop the RDS instance when you aren't using it.
+
 ## Connect to RDS via Gitpod
 
 In order to connect to the RDS instance we need to provide our Gitpod IP and whitelist for inbound traffic on port 5432.
@@ -440,7 +440,102 @@ aws ec2 modify-security-group-rules \
       source "$THEIA_WORKSPACE_ROOT/backend-flask/rds-update-sg-rule"
 ```
 
-
 ## Test remote access
 
 ![RDS Remote Access](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/RDS_Remote_Access.PNG)
+
+## Update Bash scripts for production
+
+- Let's update the bash scripts to take one param that specifies the environment we are connecting to by adding these lines:
+
+```sh
+if [ "$1" = "prod" ]; then
+  echo "Running in production mode"
+else
+  echo "Running in development mode"
+fi
+```
+
+- We'll update: db-connect and db-schema-load
+
+## Setup Cognito post confirmation lambda
+
+### Create the handler function
+
+- We'll create lambda in the same vpc as rds instance using Python 3.8. We'll create that function into `files/lambdas` too.
+
+The function is: 
+
+```py
+import json
+import psycopg2
+import os
+
+def lambda_handler(event, context):
+    user = event['request']['userAttributes']
+    print('userAttributes')
+    print(user)
+
+    user_display_name  = user['name']
+    user_email         = user['email']
+    user_handle        = user['preferred_username']
+    user_cognito_id    = user['sub']
+    try:
+      print('entered-try')
+      sql = f"""
+         INSERT INTO public.users (
+          display_name, 
+          email,
+          handle, 
+          cognito_user_id
+          ) 
+        VALUES(
+          '{user_display_name}',
+          '{user_email}',
+          '{user_handle}',
+          '{user_cognito_id}'
+        )
+      """
+      print('SQL Statement ----')
+      print(sql)
+      conn = psycopg2.connect(os.getenv('PROD_CONNECTION_URL'))
+      cur = conn.cursor()
+
+      cur.execute(sql)
+      conn.commit() 
+
+    except (Exception, psycopg2.DatabaseError) as error:
+      print(error)
+    finally:
+      if conn is not None:
+          cur.close()
+          conn.close()
+          print('Database connection closed.')
+    return event
+```
+
+- Then, we'll add a layer for psycopg2 with one of the below methods for development or production.
+
+Some precompiled versions of this layer are available publicly on AWS freely to add to your function by ARN reference.
+
+https://github.com/jetbridge/psycopg2-lambda-layer
+
+- Just go to Layers + in the function console and add a reference for your region
+
+`arn:aws:lambda:us-east-1:898466741470:layer:psycopg2-py38:2`
+
+![Arn Layer Added](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/Arn_Layer_Added.PNG)
+
+## Add the function to Cognito 
+
+- Under the user pool properties, add the function as a `Post Confirmation` lambda trigger.
+
+![Add Lambda Trigger](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/Add_Lambda_Trigger.PNG)
+
+- Now, let's create a new policy to attach to the lambda's execution role to allow the lambda function to attach to a VPC:
+
+![Lambda Execution Role](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/Lambda_Execution_Role.PNG)
+
+- Now, on registering, the user's informations are directly sent to RDS. On expanding display: `\x on;`:
+
+![LUser Saved On RDS](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_4/User_Saved_On_RDS.PNG)
