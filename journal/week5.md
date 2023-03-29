@@ -93,6 +93,8 @@ WHERE
 
 *Boto3* is the AWS SDK for Python that is used  to create, configure, and manage AWS services, such as Amazon Elastic Compute Cloud (Amazon EC2) and Amazon Simple Storage Service (Amazon S3). The SDK provides an object-oriented API as well as low-level access to AWS services.
 
+> Ref: https://boto3.amazonaws.com/v1/documentation/api/latest/index.html
+
 - Let's add *boto3* in the `backend-flask/requirements.txt` file and install it:
 
 ```sh
@@ -100,3 +102,151 @@ WHERE
   pip install -r requirements.txt
 ```
 
+## Load Schema in DynamoDB
+
+- Let's create a script to create a table in DynamoDB using boto3 `backend-flask/bin/ddb/schema-load`:
+
+```py
+#!/usr/bin/env python3
+
+import boto3
+import sys
+
+attrs = {
+  'endpoint_url': 'http://localhost:8000'
+}
+
+if len(sys.argv) == 2:
+  if "prod" in sys.argv[1]:
+    attrs = {}
+
+ddb = boto3.client('dynamodb',**attrs)
+
+table_name = 'cruddur-messages'
+
+response = ddb.create_table(
+  TableName=table_name,
+  AttributeDefinitions=[
+    {
+      'AttributeName': 'pk',
+      'AttributeType': 'S'
+    },
+    {
+      'AttributeName': 'sk',
+      'AttributeType': 'S'
+    },
+  ],
+  KeySchema=[
+    {
+      'AttributeName': 'pk',
+      'KeyType': 'HASH'
+    },
+    {
+      'AttributeName': 'sk',
+      'KeyType': 'RANGE'
+    },
+  ],
+  BillingMode='PROVISIONED',
+  ProvisionedThroughput={
+      'ReadCapacityUnits': 5,
+      'WriteCapacityUnits': 5
+  }
+)
+
+print(response)
+```
+
+- Check that DynamoDB local is defined on docker-compose.yml before running tests:
+![DynamoDB Docker Compose](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/DynamoDB_Docker_Compose.PNG)
+
+- On running schema-load:
+
+![Schema Load](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Schema_Load.PNG)
+
+## Write DynamoDB scripts utilities and Access Patterns scripts
+
+### Utilities
+
+- Let's create other utility scripts for DynamoDB:
+
+  * `backend-flask/bin/ddb/list-tables`:
+```sh
+#! /usr/bin/bash
+set -e # stop if it fails at any point
+
+if [ "$1" = "prod" ]; then
+  ENDPOINT_URL=""
+else
+  ENDPOINT_URL="--endpoint-url=http://localhost:8000"
+fi
+
+aws dynamodb list-tables $ENDPOINT_URL \
+--query TableNames \
+--output table
+```
+
+  * `backend-flask/bin/ddb/drop`:  
+```sh
+#! /usr/bin/bash
+
+set -e # stop if it fails at any point
+
+if [ -z "$1" ]; then
+  echo "No TABLE_NAME argument supplied eg ./bin/ddb/drop cruddur-messages prod "
+  exit 1
+fi
+TABLE_NAME=$1
+
+if [ "$2" = "prod" ]; then
+  ENDPOINT_URL=""
+else
+  ENDPOINT_URL="--endpoint-url=http://localhost:8000"
+fi
+
+echo "deleting table: $TABLE_NAME"
+
+aws dynamodb delete-table $ENDPOINT_URL \
+  --table-name $TABLE_NAME
+```
+  
+  * `backend-flask/bin/ddb/seed`: See this [file](backend-flask/bin/ddb/seed)
+Here is the conversation successfully seeded into DynamoDB local:
+
+![DDB Conversation Seeded](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/DDB_Conversation_Seeded.PNG)
+
+  * `backend-flask/bin/ddb/scan`: See this [file]: (backend-flask/bin/ddb/scan)
+
+```py
+#!/usr/bin/env python3
+
+import boto3
+
+attrs = {
+  'endpoint_url': 'http://localhost:8000'
+}
+ddb = boto3.resource('dynamodb',**attrs)
+table_name = 'cruddur-messages'
+
+table = ddb.Table(table_name)
+response = table.scan()
+
+items = response['Items']
+for item in items:
+  print(item)
+```
+
+The scan script output:
+
+![DDB Conversation Scanned](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/DDB_Conversation_Scanned.PNG)
+
+### Access patterns scripts
+
+  * `backend-flask/bin/ddb/patterns/get-conversation`:  See this [file](backend-flask/bin/ddb/get-conversation)
+
+![Get Conversation Consumed Capacity](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Get_Conversation_Consumed_Capacity.PNG)
+
+![Get Conversation](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Get_Conversation.PNG)
+
+  * `backend-flask/bin/ddb/patterns/list-conversation`: See this [file](backend-flask/bin/ddb/list-conversation)
+
+![List Conversation](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/List_Conversation.PNG)
