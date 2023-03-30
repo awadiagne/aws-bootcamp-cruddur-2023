@@ -250,3 +250,304 @@ The scan script output:
   * `backend-flask/bin/ddb/patterns/list-conversation`: See this [file](backend-flask/bin/ddb/list-conversation)
 
 ![List Conversation](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/List_Conversation.PNG)
+
+## Implement Access Patterns
+
+### Create DynamoDB Service
+
+- Let's now create the service to communicate with DynamoDB with this file `backend-flask/lib/ddb.py`:
+
+```py
+import boto3
+import sys
+from datetime import datetime, timedelta, timezone
+import uuid
+import os
+
+class Ddb:
+  
+  def client():
+    endpoint_url = os.getenv("AWS_ENDPOINT_URL")
+    if endpoint_url:
+      attrs = { 'endpoint_url': endpoint_url }
+    else:
+      attrs = {}
+    dynamodb = boto3.client('dynamodb',**attrs)
+    return dynamodb  
+  
+  def list_message_groups(client,my_user_uuid):
+    current_year = datetime.datetime.now().year
+    table_name = 'cruddur-messages'
+    query_params = {
+      'TableName': table_name,
+      'KeyConditionExpression': 'pk = :pk AND begins_with(sk,:year)',
+      'ScanIndexForward': False,
+      'Limit': 20,
+      'ExpressionAttributeValues': {
+        ':year': {'S': str(current_year) },
+        ':pkey': {'S': f"GRP#{my_user_uuid}"}
+      }
+    }
+    print('query-params')
+    print(query_params)
+    print('client')
+    print(client)
+
+    # query the table
+    response = client.query(**query_params)
+    items = response['Items']
+
+    results = []
+    for item in items:
+      last_sent_at = item['sk']['S']
+      results.append({
+        'uuid': item['message_group_uuid']['S'],
+        'display_name': item['user_display_name']['S'],
+        'handle': item['user_handle']['S'],
+        'message': item['message']['S'],
+        'created_at': last_sent_at
+      })
+    return results
+```
+
+- Now, let's create a script that retrieves the Cognito users username and sub `backend-flask/bin/cognito/list-users`:
+
+```py
+#!/usr/bin/env python3
+
+import boto3
+import os
+import json
+
+userpool_id = os.getenv("AWS_COGNITO_USER_POOL_ID")
+client = boto3.client('cognito-idp')
+params = {
+  'UserPoolId': userpool_id,
+  'AttributesToGet': [
+      'preferred_username',
+      'sub'
+  ]
+}
+response = client.list_users(**params)
+users = response['Users']
+
+print(json.dumps(users, sort_keys=True, indent=2, default=str))
+
+dict_users = {}
+for user in users:
+  attrs = user['Attributes']
+  sub    = next((a for a in attrs if a["Name"] == 'sub'), None)
+  handle = next((a for a in attrs if a["Name"] == 'preferred_username'), None)
+  dict_users[handle['Value']] = sub['Value']
+
+print(dict_users)
+```
+![List Cognito Users](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/List_Cognito_Users.PNG)
+
+- Now, let's create a script that update the Cognito users' ids in the DB `backend-flask/db/update-cognito-user-ids`:
+
+```py
+#!/usr/bin/env python3
+
+import boto3
+import os
+import sys
+
+current_path = os.path.dirname(os.path.abspath(__file__))
+parent_path = os.path.abspath(os.path.join(current_path, '..', '..'))
+sys.path.append(parent_path)
+from lib.db import db
+
+def update_users_with_cognito_user_id(handle,sub):
+  sql = """
+    UPDATE public.users
+    SET cognito_user_id = %(sub)s
+    WHERE
+      users.handle = %(handle)s;
+  """
+  db.query_commit(sql,{
+    'handle' : handle,
+    'sub' : sub
+  })
+
+def get_cognito_user_ids():
+  userpool_id = os.getenv("AWS_COGNITO_USER_POOL_ID")
+  client = boto3.client('cognito-idp')
+  params = {
+    'UserPoolId': userpool_id,
+    'AttributesToGet': [
+        'preferred_username',
+        'sub'
+    ]
+  }
+  response = client.list_users(**params)
+  users = response['Users']
+  dict_users = {}
+  for user in users:
+    attrs = user['Attributes']
+    sub    = next((a for a in attrs if a["Name"] == 'sub'), None)
+    handle = next((a for a in attrs if a["Name"] == 'preferred_username'), None)
+    dict_users[handle['Value']] = sub['Value']
+  return dict_users
+
+
+users = get_cognito_user_ids()
+
+for handle, sub in users.items():
+  print('----',handle,sub)
+  update_users_with_cognito_user_id(
+    handle=handle,
+    sub=sub
+  )
+```
+
+![Update Cognito Users Ids](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Update_Cognito_Users_Ids.PNG)
+
+- Now, we can update `backend-flask/app.py` to get the cognito user id on creating a message group and a message:
+
+```py
+@app.route("/api/message_groups", methods=['GET'])
+def data_message_groups():
+  access_token = extract_access_token(request.headers)
+  try:
+    claims = cognito_jwt_token.verify(access_token)
+    cognito_user_id = claims['sub']
+    model = MessageGroups.run(cognito_user_id=cognito_user_id)
+    if model['errors'] is not None:
+      return model['errors'], 422
+    else:
+      return model['data'], 200
+
+  except TokenVerifyError as e:
+    app.logger.debug(e)
+    return {}, 401
+
+@app.route("/api/messages/<string:message_group_uuid>", methods=['GET'])
+def data_messages(message_group_uuid):
+  user_sender_handle = 'andrewbrown'
+  user_receiver_handle = request.args.get('user_reciever_handle')
+
+  access_token = extract_access_token(request.headers)
+  try:
+    claims = cognito_jwt_token.verify(access_token)
+    cognito_user_id = claims['sub']
+    model = Messages.run(
+      message_group_uuid=message_group_uuid,
+      cognito_user_id=cognito_user_id
+    )
+    if model['errors'] is not None:
+      return model['errors'], 422
+    else:
+      return model['data'], 200
+    return
+  except TokenVerifyError as e:
+    app.logger.debug(e)
+    return {}, 401
+
+@app.route("/api/messages", methods=['POST','OPTIONS'])
+@cross_origin()
+def data_create_message():
+  access_token = extract_access_token(request.headers)
+  try:
+    claims = cognito_jwt_token.verify(access_token)
+    # authenicatied request
+    app.logger.debug("authenicated")
+    cognito_user_id = claims['sub']
+    message = request.json['message']
+
+    message_group_uuid   = request.json.get('message_group_uuid',None)
+    user_receiver_handle = request.json.get('user_receiver_handle',None)
+
+    if message_group_uuid == None:
+      # Create for the first time
+      model = CreateMessage.run(
+        mode="create",
+        message=message,
+        cognito_user_id=cognito_user_id,
+        user_receiver_handle=user_receiver_handle
+      )
+    else:
+      # Push onto existing Message Group
+      model = CreateMessage.run(
+        mode="update",
+        message=message,
+        message_group_uuid=message_group_uuid,
+        cognito_user_id=cognito_user_id
+      )
+
+    if model['errors'] is not None:
+      return model['errors'], 422
+    else:
+      return model['data'], 200
+  except TokenVerifyError as e:
+    # unauthenicatied request
+    app.logger.debug(e)
+    app.logger.debug("unauthenicated")
+    return {}, 401
+```
+
+- Now, we can also update `backend-flask/services/message_groups.py` to create a message group:
+
+```py
+from lib.ddb import Ddb
+from lib.db import db
+
+class MessageGroups:
+  def run(cognito_user_id):
+    model = {
+      'errors': None,
+      'data': None
+    }
+
+    sql = db.template('users','uuid_from_cognito_user_id')
+    my_user_uuid = db.query_value(sql,{'cognito_user_id': cognito_user_id})
+
+    print("UUID",my_user_uuid)
+
+
+    ddb = Ddb.client()
+    data = Ddb.list_message_groups(ddb, my_user_uuid)
+    print("list_message_groups:",data)
+    model['data'] = data
+    return models
+```
+
+- Let's do the same for `backend-flask/services/messages.py`
+```py
+from datetime import datetime, timedelta, timezone
+from lib.ddb import Ddb
+from lib.db import db
+
+class Messages:
+  def run(message_group_uuid,cognito_user_id):
+    model = {
+      'errors': None,
+      'data': None
+    }
+
+    sql = db.template('users','uuid_from_cognito_user_id')
+    my_user_uuid = db.query_value(sql,{'cognito_user_id': cognito_user_id})
+    # TODO: we're suppose to check that we have permission to access
+    # this message_group_uuid, its missing in our access pattern.
+
+    ddb = Ddb.client()
+    data = Ddb.list_messages(ddb, message_group_uuid)
+    print("list_messages:",data)
+
+    model['data'] = data
+    return model
+```
+
+- Let's now create a script to get the user's UUID from its cognito user id in `backend-flask/bin/db/sql/users/uuid_from_cognito_user_id`:
+
+```sql
+SELECT 
+  users.uuid
+FROM public.users
+WHERE 
+  users.cognito_user_id = %(cognito_user_id)s
+```
+
+
+
+![Conversation](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/List_Conversation.PNG)
