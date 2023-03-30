@@ -548,6 +548,19 @@ WHERE
   users.cognito_user_id = %(cognito_user_id)s
 ```
 
+### Update Frontend to add Authorization Header
 
+We'll perform the update for:
 
-![Conversation](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/List_Conversation.PNG)
+* `frontend-react-js/src/pages/MessageGroupPage.js`
+* `frontend-react-js/src/pages/HomeFeedPage.js`
+* `frontend-react-js/src/pages/MessageGroupsPage.js`
+
+```js
+const res = await fetch(backend_url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`
+        },
+        method: "GET"
+      });
+```
