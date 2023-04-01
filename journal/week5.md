@@ -663,4 +663,105 @@ On submitting a message this one should be updated to add the message for an exi
 
 ### Implement (Pattern E) Updating a Message Group using DynamoDB Streams
 
+We'll use *DynamoDB streams* to update our message group in an existing conversation when a new message is sent. To do so, we'l follow these steps:
+
+- Create a VPC endpoint for dynamoDB service on our VPC:
+
+![Create VPC Endpoint](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Create_VPC_Endpoint.PNG)
+
+- Create a Python Lambda function in our VPC:
+
+```py
+import json
+import boto3
+from boto3.dynamodb.conditions import Key, Attr
+
+dynamodb = boto3.resource(
+ 'dynamodb',
+ region_name='ca-central-1',
+ endpoint_url="http://dynamodb.ca-central-1.amazonaws.com"
+)
+
+def lambda_handler(event, context):
+  pk = event['Records'][0]['dynamodb']['Keys']['pk']['S']
+  sk = event['Records'][0]['dynamodb']['Keys']['sk']['S']
+  if pk.startswith('MSG#'):
+    group_uuid = pk.replace("MSG#","")
+    message = event['Records'][0]['dynamodb']['NewImage']['message']['S']
+    print("GRUP ===>",group_uuid,message)
+    
+    table_name = 'cruddur-messages'
+    index_name = 'message-group-sk-index'
+    table = dynamodb.Table(table_name)
+    data = table.query(
+      IndexName=index_name,
+      KeyConditionExpression=Key('message_group_uuid').eq(group_uuid)
+    )
+    print("RESP ===>",data['Items'])
+    
+    # recreate the message group rows with new SK value
+    for i in data['Items']:
+      delete_item = table.delete_item(Key={'pk': i['pk'], 'sk': i['sk']})
+      print("DELETE ===>",delete_item)
+      
+      response = table.put_item(
+        Item={
+          'pk': i['pk'],
+          'sk': sk,
+          'message_group_uuid':i['message_group_uuid'],
+          'message':message,
+          'user_display_name': i['user_display_name'],
+          'user_handle': i['user_handle'],
+          'user_uuid': i['user_uuid']
+        }
+      )
+      print("CREATE ===>",response)
+```
+
+To do so, we can create a new role while creating the Lambda and add the permissions later. We'll also `Enable VPC` and select the subnets and the security group.
+
+- Grant the lambda IAM role permission to read the DynamoDB stream events: `AWSLambdaInvocation-DynamoDB` and `AmazonDynamoDBFullAccess`
+
+- Enable streams on the table with `'new image'` attributes included so that the entire item as it appears after it was changed.
+* First, let's update the `backend-flask/bin/ddb/schema-load` script by adding Global Secondary Indexes at the end of the table definition and its attribute in the AttributesDefinition section:
+```py
+{
+  'AttributeName': 'message_group_uuid',
+  'AttributeType': 'S'
+}
+...
+'GlobalSecondaryIndexes':[{
+    'IndexName':'message-group-sk-index',
+    'KeySchema':[{
+      'AttributeName': 'message_group_uuid',
+      'KeyType': 'HASH'
+    },{
+      'AttributeName': 'sk',
+      'KeyType': 'RANGE'
+    }],
+    'Projection': {
+      'ProjectionType': 'ALL'
+    },
+    'ProvisionedThroughput': {
+      'ReadCapacityUnits': 5,
+      'WriteCapacityUnits': 5
+    },
+}]
+```
+
+* We run the script to create the DynamoDB table in our AWS account: `backend-flask/bin/ddb/schema-load prod`.
+
+* Then, we enable DynamoDb streams in the AWS Management Console.
+
+- Add our function as a trigger on the stream
+In DynamoDB console, Go the *cruddur-messages* table, and click on the `Exports and Streams` tab to add a trigger.
+
+![DDB Streams Lambda Trigger](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/DDB_Streams_Lambda_Trigger.PNG)
+
+Now, we just have to update our `docker-compose.yml` file to use our production DynamoDB table instead of the local one. All we have to do is remove the *AWS_ENDPOINT_URL* env variable.
+
+On the following screenshot, when we sent a new message, it created a message group. Then, we sent another message and the message group is updated: 
+
 ![Update Message Group](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Update_Message_Group.PNG)
+
+![Lambda Logs](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Lambda_Logs.PNG)
