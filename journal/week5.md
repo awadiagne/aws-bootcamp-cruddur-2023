@@ -2,7 +2,7 @@
 
 ## The Boundaries of DynamoDB
 
-- When you write a query you have provide a Primary Key (equality) eg. pk = 'andrew'
+- When you write a query you have provide a Primary Key (equality) eg. pk = 'Awa'
 - Are you allowed to "update" the Hash and Range?
   - No, whenever you change a key (simple or composite) eg. pk or sk you have to create a new item.
     - you have to delete the old one
@@ -424,8 +424,8 @@ def data_message_groups():
 
 @app.route("/api/messages/<string:message_group_uuid>", methods=['GET'])
 def data_messages(message_group_uuid):
-  user_sender_handle = 'andrewbrown'
-  user_receiver_handle = request.args.get('user_reciever_handle')
+  user_sender_handle = 'Awa'
+  user_receiver_handle = request.args.get('user_receiver_handle')
 
   access_token = extract_access_token(request.headers)
   try:
@@ -564,3 +564,103 @@ const res = await fetch(backend_url, {
         method: "GET"
       });
 ```
+
+### Implement (Pattern A) Listing Messages in Message Group into Application
+
+- In `frontend-react-js/src/App.js`, let's add an endpoint for message group:
+
+```js
+  {
+    path: "/messages/:message_group_uuid",
+    element: <MessageGroupPage />
+  }
+```
+
+![Listing Messages](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Listing_Messages.PNG)
+ 
+### Implement (Pattern B) Listing Messages Group into Application
+
+- On clicking on *Messages* for a new message group, this one should be created with the message:
+
+![Messages In Message Group](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Messages_In_Message_Group.PNG)
+
+### Implement (Pattern C) Creating a Message for an existing Message Group into Application - Implement (Pattern D) Creating a Message for a new Message Group into Application
+
+On submitting a message this one should be updated to add the message for an existing message group else, a message group is created:
+
+- In `frontend-react-js/src/App.js`, here are the two endpoints for a adding a message to an existing and a new message group:
+
+```js
+{
+  path: "/messages/:message_group_uuid",
+  element: <MessageGroupPage />
+},
+{
+  path: "/messages/new/:handle",
+  element: <MessageGroupNewPage />
+}
+```
+
+- We'll update `frontend-react-js/src/components/MessageForm.js`:
+
+```js
+  if (params.handle) {
+    json.user_receiver_handle = params.handle
+  } else {
+    json.message_group_uuid = params.message_group_uuid
+  }
+```
+- On the backend, if the *handle* is set, we must create a new message group. Else, *message_group_uuid* is set, then we just have the update the existing group:
+```py
+  message_group_uuid   = request.json.get('message_group_uuid',None)
+  user_receiver_handle = request.json.get('user_receiver_handle',None)
+
+  if message_group_uuid == None:
+    model = CreateMessage.run(
+      mode="create",
+      message=message,
+      cognito_user_id=cognito_user_id,
+      user_receiver_handle=user_receiver_handle
+    )
+  else:
+    model = CreateMessage.run(
+      mode="update",
+      message=message,
+      message_group_uuid=message_group_uuid,
+      cognito_user_id=cognito_user_id
+    )
+  ...
+  if (mode == "update"):
+    data = Ddb.create_message(
+      client=ddb,
+      message_group_uuid=message_group_uuid,
+      message=message,
+      my_user_uuid=my_user['uuid'],
+      my_user_display_name=my_user['display_name'],
+      my_user_handle=my_user['handle']
+    )
+  elif (mode == "create"):
+    data = Ddb.create_message_group(
+      client=ddb,
+      message=message,
+      my_user_uuid=my_user['uuid'],
+      my_user_display_name=my_user['display_name'],
+      my_user_handle=my_user['handle'],
+      other_user_uuid=other_user['uuid'],
+      other_user_display_name=other_user['display_name'],
+      other_user_handle=other_user['handle']
+    )
+```
+
+- The result when a message is sent in a new message group:
+
+![Message In New Message Group](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Message_In_New_Message_Group.PNG)
+
+- When a message in sent in an existing message group:
+
+![Message In Existing Message Group](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Message_In_Existing_Message_Group.PNG)
+
+
+### Implement (Pattern E) Updating a Message Group using DynamoDB Streams
+
+![Update Message Group](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_5/Update_Message_Group.PNG)

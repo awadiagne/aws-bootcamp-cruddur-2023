@@ -116,8 +116,8 @@ def data_message_groups():
 
 @app.route("/api/messages/<string:message_group_uuid>", methods=['GET'])
 def data_messages(message_group_uuid):
-  user_sender_handle = 'andrewbrown'
-  user_receiver_handle = request.args.get('user_reciever_handle')
+  user_sender_handle = 'Awa'
+  user_receiver_handle = request.args.get('user_receiver_handle')
 
   access_token = extract_access_token(request.headers)
   try:
