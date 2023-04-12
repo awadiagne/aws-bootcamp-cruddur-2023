@@ -247,5 +247,9 @@ def data_activities_reply(activity_uuid):
     return model['data'], 200
   return
 
+@app.route('/api/health-check')
+def health_check():
+  return {'success': True}, 200
+
 if __name__ == "__main__":
   app.run(debug=True)
