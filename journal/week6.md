@@ -783,3 +783,52 @@ Shell into the backend flask container and run the `./bin/db/test` script to ens
 `./bin/flask/health-check`
 
 ![DB Flask_Running In Task](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/DB_Flask_Running_In_Task.PNG)
+
+## Custom Domain
+
+Now let's create a custom domain name for Cruddur:
+
+We first create the hosted zone:
+
+![Hosted Zone Created](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Hosted_Zone_Created.PNG)
+
+- Domain name registration is done via Route53. We choose *.cruddur-app.click*
+
+![Registered Domain](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Registered_Domain.PNG)
+
+- Now let's generate a public certificate with AWS Certificate Manager (ACM)
+
+![Certificate Issued](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Certificate_Issued.PNG)
+
+- In Route 53, enter the certificate and click *Create records* to see CNAME records:
+
+![Create Records](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Create_Records.PNG)
+
+- We'll add a listener in the Load Balancer to redirect *HTTP:80* to *HTTPS:443*
+
+![HTTP To HTTPS](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/HTTP_To_HTTPS.PNG)
+
+- We'll also add another listener to make *HTTPS:443* forward to frontend with out certificate
+
+![HTTPS To TG](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/HTTPS_To_TG.PNG)
+
+- Now, we'll add a rule for *HTTPS:443* where IF *Host Header* is *api.cruddur-app.click* THEN forward to *cruddur-backend-flask-tg*
+
+![Edit Listener Rule](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Edit_Listener_Rule.PNG)
+
+- Finally, we'll create a new record in Route 53 of type *A - Route Traffic to an IPv4 address and some AWS resources*. We'll anable *Alias* and set *Route Traffic* to *Alias to Application and Classic Load Balancer*. The Record Name is let blank:
+
+![Create Record Route To_ALB](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Create_Record_Route_To_ALB.PNG)
+
+- We'll create another record similar to the previous one but with record name *api.cruddur-app.click*:
+
+![Create Record Api](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Create_Record_Api.PNG)
+
+## Testing Custom Domain
+
+![Backend Health Check](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Backend_Health_Check.PNG)
+
+![Frontend Custom Domain](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Frontend_Custom_Domain.PNG)
+
+
+![](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/.PNG)
