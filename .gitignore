@@ -1,2 +1,4 @@
 docker/**/*
 *.deb
+frontend-react-js/build/*
+*.env
