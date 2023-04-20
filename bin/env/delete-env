@@ -1,0 +1,23 @@
+#! /usr/bin/bash
+
+# Set the ELB name
+ALB_NAME="cruddur-alb"
+
+# Get the ELB ARN
+ALB_ARN=$(aws elbv2 describe-load-balancers --names $ALB_NAME --query "LoadBalancers[0].LoadBalancerArn" --output text)
+
+
+# Delete ELB
+aws elbv2 delete-load-balancer --load-balancer-arn $ALB_ARN
+
+
+# Delete services
+
+aws ecs delete-service --cluster cruddur --service backend-flask --force
+
+aws ecs delete-service --cluster cruddur --service frontend-react-js --force
+
+
+# Stop RDS instance
+
+aws rds stop-db-instance --db-instance-identifier cruddur-db-instance

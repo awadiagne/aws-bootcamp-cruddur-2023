@@ -1,0 +1,62 @@
+#! /usr/bin/bash
+
+SUBNET_IDS="subnet-040cfcb6a3605948e subnet-07cd2eeb1283b2202 subnet-06f00c60addacd9c6 subnet-03aa83cfb511831b9 subnet-04b7ce0a277415994 subnet-09996c821188b5620"
+S3_BUCKET_NAME=cruddur-alb-access-logs-171653636382
+ELB_SG=sg-055a101bb1d0c4cd8
+ELB_NAME=cruddur-alb
+ELB_LISTENER_POLICY=ELBSecurityPolicy-TLS13-1-2-2021-06
+CERT_ARN=arn:aws:acm:us-east-1:171653636382:certificate/edab0c59-1491-4166-acbe-117cd7ff7f0b
+FRONT_TARGET_GROUP_ARN=arn:aws:elasticloadbalancing:us-east-1:171653636382:targetgroup/cruddur-frontend-react-js-tg/e4e98c5e3cb52c06
+BACK_TARGET_GROUP_ARN=arn:aws:elasticloadbalancing:us-east-1:171653636382:targetgroup/cruddur-backend-flask-tg/0b8821ac243857ba
+
+
+# Create ALB
+
+ALB_ARN=$(aws elbv2 create-load-balancer \
+            --name $ELB_NAME \
+            --subnets $SUBNET_IDS \
+            --security-groups $ELB_SG \
+            --tags Key='Name',Value='CRUDDUR ALB' --output text \
+            --query 'LoadBalancers[0].LoadBalancerArn')
+
+echo "ALB ARN : $ALB_ARN"
+
+#aws elbv2 modify-load-balancer-attributes \
+#            --load-balancer-arn $ALB_ARN \
+#            --attributes Key=access_logs.s3.enabled,Value=true,Key=access_logs.s3.bucket,Value="$S3_BUCKET_NAME"
+
+
+# Create the listeners
+
+aws elbv2 create-listener \
+    --load-balancer-arn $ALB_ARN \
+    --protocol HTTP \
+    --port 80 \
+    --default-actions '[{"Type": "redirect", "RedirectConfig": {"Protocol": "HTTPS", "Port": "443", "Host": "#{host}", "Query": "#{query}", "Path": "/#{path}", "StatusCode": "HTTP_301"}}]' \
+    --tags Key='Name',Value='CRUDDUR LISTENER HTTP TO HTTPS'
+
+LISTENER_443_ARN=$(aws elbv2 create-listener \
+    --load-balancer-arn $ALB_ARN \
+    --protocol HTTPS --port 443 \
+    --certificates CertificateArn=$CERT_ARN \
+    --ssl-policy $ELB_LISTENER_POLICY \
+    --default-actions '[{"Type": "forward","TargetGroupArn": "'$FRONT_TARGET_GROUP_ARN'"}]' \
+    --tags Key='Name',Value='CRUDDUR LISTENER HTTPS TO REACT_TG' \
+    --output text \
+    --query 'Listeners[0].ListenerArn')
+
+aws elbv2 create-rule --listener-arn $LISTENER_443_ARN \
+    --priority 100 \
+    --conditions Field=host-header,Values=api.cruddur-app.click \
+    --actions Type=forward,TargetGroupArn=$BACK_TARGET_GROUP_ARN
+
+# Create Backend and Frontend services
+
+aws ecs create-service --cli-input-json file://$THEIA_WORKSPACE_ROOT/aws/json/service-backend-flask.json
+
+aws ecs create-service --cli-input-json file://$THEIA_WORKSPACE_ROOT/aws/json/service-frontend-react-js.json
+
+
+# Start db instance
+
+aws rds start-db-instance --db-instance-identifier cruddur-db-instance
