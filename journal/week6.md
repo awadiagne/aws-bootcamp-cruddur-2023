@@ -831,4 +831,153 @@ We first create the hosted zone:
 ![Frontend Custom Domain](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Frontend_Custom_Domain.PNG)
 
 
-![](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/.PNG)
+## Restructuring Bash Scripts
+
+## Improve the Docker Networking
+
+Let's add networking to Docker so that the containers can communicate.
+
+- First, let's create the network:
+
+![Add Docker Network](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/Add_Docker_Network.PNG)
+
+- Then, we add a network called *cruddur-net* in the `docker.compose.yml` file:
+
+```yml
+networks: 
+  cruddur-net:
+    driver: bridge
+    name: cruddur-net
+```
+- In the same file, we can specify cruddur-net as network in all the containers:
+
+```yml
+backend-flask:
+  ...
+  networks:
+      - cruddur-net
+frontend-react-js:
+  ...
+  networks:
+      - cruddur-net
+db:
+  ...
+  networks:
+      - cruddur-net
+dynamodb-local:
+  ...
+  networks:
+      - cruddur-net
+xray-daemon:
+  ...
+  networks:
+      - cruddur-net
+```
+
+## Generate Environment Variables
+
+To generate files containing the environment variables, we can use Ruby scripts that will generate the environment variables.
+
+- First, we create the backend and frontend Ruby files that contain the respective env variables:
+
+`erb/backend-flask.env.erb`:
+
+```ruby
+AWS_ENDPOINT_URL=http://dynamodb-local:8000
+CONNECTION_URL=postgresql://postgres:password@db:5432/cruddur
+FRONTEND_URL=https://3000-<%= ENV['GITPOD_WORKSPACE_ID'] %>.<%= ENV['GITPOD_WORKSPACE_CLUSTER_HOST'] %>
+BACKEND_URL=https://4567-<%= ENV['GITPOD_WORKSPACE_ID'] %>.<%= ENV['GITPOD_WORKSPACE_CLUSTER_HOST'] %>
+OTEL_SERVICE_NAME=backend-flask
+OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io
+OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=<%= ENV['HONEYCOMB_API_KEY'] %>
+AWS_XRAY_URL=*4567-<%= ENV['GITPOD_WORKSPACE_ID'] %>.<%= ENV['GITPOD_WORKSPACE_CLUSTER_HOST'] %>*
+AWS_XRAY_DAEMON_ADDRESS=xray-daemon:2000
+AWS_DEFAULT_REGION=<%= ENV['AWS_DEFAULT_REGION'] %>
+AWS_ACCESS_KEY_ID=<%= ENV['AWS_ACCESS_KEY_ID'] %>
+AWS_SECRET_ACCESS_KEY=<%= ENV['AWS_SECRET_ACCESS_KEY'] %>
+ROLLBAR_ACCESS_TOKEN=<%= ENV['ROLLBAR_ACCESS_TOKEN'] %>
+AWS_COGNITO_USER_POOL_ID=<%= ENV['AWS_COGNITO_USER_POOL_ID'] %>
+AWS_COGNITO_USER_POOL_CLIENT_ID=<%= ENV['AWS_COGNITO_USER_POOL_CLIENT_ID'] %>
+```
+
+`erb/frontend-react-js.env.erb`:
+
+```ruby
+REACT_APP_BACKEND_URL=https://4567-<%= ENV['GITPOD_WORKSPACE_ID'] %>.<%= ENV['GITPOD_WORKSPACE_CLUSTER_HOST'] %>
+REACT_APP_AWS_PROJECT_REGION=<%= ENV['AWS_DEFAULT_REGION'] %>
+REACT_APP_AWS_COGNITO_REGION=<%= ENV['AWS_DEFAULT_REGION'] %>
+REACT_APP_AWS_USER_POOLS_ID=<%= ENV['AWS_COGNITO_USER_POOL_ID'] %>
+REACT_APP_CLIENT_ID=<%= ENV['AWS_COGNITO_USER_POOL_CLIENT_ID'] %>
+```
+
+- Then, we'll create a ruby script in the backend and in the frontend that will generate the variables:
+
+```ruby
+#!/usr/bin/env ruby
+
+require 'erb'
+
+template = File.read 'erb/backend-flask.env.erb'
+content = ERB.new(template).result(binding)
+filename = "backend-flask.env"
+File.write(filename, content)
+```
+
+```ruby
+#!/usr/bin/env ruby
+
+require 'erb'
+
+template = File.read 'erb/frontend-react-js.env.erb'
+content = ERB.new(template).result(binding)
+filename = "frontend-react-js.env"
+File.write(filename, content)
+```
+
+- Finally, we can launch the scripts to generate the files:
+
+```sh
+./bin/backend/generate-env
+./bin/frontend/generate-env
+```
+
+- And add them to `gitpod.yml`:
+
+```yml
+- name: react-js
+    command: |
+      source  "$THEIA_WORKSPACE_ROOT/bin/frontend/generate-env"
+      cd frontend-react-js
+      npm i
+  
+  - name: flask
+    command: |
+      source  "$THEIA_WORKSPACE_ROOT/bin/backend/generate-env"
+      cd backend-flask
+      pip install -r requirements.txt
+```
+
+## Add X-Ray to Backend and Frontend Task Definitions
+
+In `aws/task-definitions`, add the X-Ray container in containerDefinitions in `backend-flask.json` and in `frontend-react-js.json`:
+
+```json
+"containerDefinitions": [
+      {
+        "name": "xray",
+        "image": "public.ecr.aws/xray/aws-xray-daemon" ,
+        "essential": true,
+        "user": "1337",
+        "portMappings": [
+          {
+            "name": "xray",
+            "containerPort": 2000,
+            "protocol": "udp"
+          }
+        ]
+      }
+```
+
+![XRay in Backend](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/XRay_In_Backend.PNG)
+
+![XRay in Frontend](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_6/XRay_In_Frontend.PNG)
