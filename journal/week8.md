@@ -131,6 +131,27 @@ cdk ls
 
 ## Load Env Vars
 
+- To handle environment variables, we'll install the `dotenv` package by adding it into `thumbing-serverless-cdk/package.json`:
+
+```json
+    "dependencies": {
+      ...
+      "dotenv": "^16.0.3",
+    }
+```
+
+- We'll then set the environment variables in the `.env` file:
+
+```
+THUMBING_BUCKET_NAME='assets.cruddur-app.click'
+THUMBING_S3_FOLDER_INPUT='avatar/original'
+THUMBING_S3_FOLDER_OUTPUT='avatar/processed'
+THUMBING_WEBHOOK_URL="https://api.cruddur-app.click/webhooks/avatar"
+THUMBING_TOPIC_NAME="cruddur-assets"
+THUMBING_FUNCTION_PATH="/workspace/aws-bootcamp-cruddur-2023/aws/lambdas/process-images"
+```
+
+
 ```ts
 const dotenv = require('dotenv');
 dotenv.config();
@@ -151,6 +172,8 @@ console.log('functionPath',functionPath)
 
 ## Create Bucket
 
+- Let's create the bucket for the avatars:
+
 ```ts
 import * as s3 from 'aws-cdk-lib/aws-s3';
 
@@ -168,10 +191,11 @@ createBucket(bucketName: string): s3.IBucket {
 
 ## Create Lambda
 
+- Now, we create the Lambda function for processing the avatars:
 ```ts
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 
-const lambda = this.createLambda(folderInput,folderOutput,functionPath,bucketName)
+const lambda = this.createLambda(folderInput, folderOutput, functionPath, bucketName)
 
 createLambda(folderIntput: string, folderOutput: string, functionPath: string, bucketName: string): lambda.IFunction {
   const logicalName = 'ThumbLambda';
@@ -191,3 +215,18 @@ createLambda(folderIntput: string, folderOutput: string, functionPath: string, b
   return lambdaFunction;
 }
 ```
+
+## Create Lambda assets
+
+- We'll now create the directory that will hold the files for the Lambda in `aws/lambdas/process-images`:
+
+
+```
+aws/lambdas/process-images
+  |_ index.js : holds the handler for the Lambda function
+  |_ example.json : a record example
+  |_ package.json : the dependencies needed for the Lambda's execution
+  |_ s3-image-processing.js : holds the code that processes the image uploaded
+  |_ test.js : a script to test the Lambda
+```
+

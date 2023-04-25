@@ -12,9 +12,17 @@ export class ThumbingServerlessCdkStack extends cdk.Stack {
     super(scope, id, props);
 
     const bucketName: string = process.env.THUMBING_BUCKET_NAME as string;
-    const functionPath: string = process.env.THUMBING_FUNCTION_PATH as string;
     const folderInput: string = process.env.THUMBING_S3_FOLDER_INPUT as string;
     const folderOutput: string = process.env.THUMBING_S3_FOLDER_OUTPUT as string;
+    const webhookUrl: string = process.env.THUMBING_WEBHOOK_URL as string;
+    const topicName: string = process.env.THUMBING_TOPIC_NAME as string;
+    const functionPath: string = process.env.THUMBING_FUNCTION_PATH as string;
+    console.log('bucketName',bucketName)
+    console.log('folderInput',folderInput)
+    console.log('folderOutput',folderOutput)
+    console.log('webhookUrl',webhookUrl)
+    console.log('topicName',topicName)
+    console.log('functionPath',functionPath)
 
     const bucket = this.createBucket(bucketName);
     const lambda = this.createLambda(functionPath, bucketName, folderInput, folderOutput);
@@ -29,14 +37,16 @@ export class ThumbingServerlessCdkStack extends cdk.Stack {
     return bucket;
   }
 
-  createLambda(functionPath: string, bucketName: string, folderInput: string, folderOutput: string): lambda.IFunction {
-    const lambdaFunction = new lambda.Function(this, 'ThumbLambda', {
+  createLambda(folderIntput: string, folderOutput: string, functionPath: string, bucketName: string): lambda.IFunction {
+    const logicalName = 'ThumbLambda';
+    const code = lambda.Code.fromAsset(functionPath)
+    const lambdaFunction = new lambda.Function(this, logicalName, {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(functionPath),
+      code: code,
       environment: {
         DEST_BUCKET_NAME: bucketName,
-        FOLDER_INPUT: folderInput,
+        FOLDER_INPUT: folderIntput,
         FOLDER_OUTPUT: folderOutput,
         PROCESS_WIDTH: '512',
         PROCESS_HEIGHT: '512'

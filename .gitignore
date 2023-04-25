@@ -2,3 +2,4 @@ docker/**/*
 *.deb
 frontend-react-js/build/*
 *.env
+node_modules
