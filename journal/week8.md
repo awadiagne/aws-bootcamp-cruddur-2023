@@ -144,9 +144,9 @@ cdk ls
 
 ```
 THUMBING_BUCKET_NAME='assets.cruddur-app.click'
-THUMBING_S3_FOLDER_INPUT='avatar/original'
-THUMBING_S3_FOLDER_OUTPUT='avatar/processed'
-THUMBING_WEBHOOK_URL="https://api.cruddur-app.click/webhooks/avatar"
+THUMBING_S3_FOLDER_INPUT='avatars/original'
+THUMBING_S3_FOLDER_OUTPUT='avatars/processed'
+THUMBING_WEBHOOK_URL="https://api.cruddur-app.click/webhooks/avatars"
 THUMBING_TOPIC_NAME="cruddur-assets"
 THUMBING_FUNCTION_PATH="/workspace/aws-bootcamp-cruddur-2023/aws/lambdas/process-images"
 ```
@@ -220,7 +220,6 @@ createLambda(folderIntput: string, folderOutput: string, functionPath: string, b
 
 - We'll now create the directory that will hold the files for the Lambda in `aws/lambdas/process-images`:
 
-
 ```
 aws/lambdas/process-images
   |_ index.js : holds the handler for the Lambda function
@@ -230,3 +229,101 @@ aws/lambdas/process-images
   |_ test.js : a script to test the Lambda
 ```
 
+- The `package.json` file holds the dependencies for the Lambda function. We must install them before deploying the Lambda function:
+
+```sh
+cd aws/lambdas/process-images
+npm install
+```
+
+- Now, we must create a script to do the build and add the dependencies for the Lambda in bin/serverless/build:
+
+```sh
+#! /usr/bin/bash
+
+ABS_PATH=$(readlink -f "$0")
+SERVERLESS_PATH=$(dirname $ABS_PATH)
+BIN_PATH=$(dirname $SERVERLESS_PATH)
+PROJECT_PATH=$(dirname $BIN_PATH)
+SERVERLESS_PROJECT_PATH="$PROJECT_PATH/thumbing-serverless-cdk"
+
+cd $SERVERLESS_PROJECT_PATH
+
+npm install
+rm -rf node_modules/sharp
+SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install --arch=x64 --platform=linux --libc=glibc sharp
+```
+
+## Create S3 Event Notification to Lambda
+
+```ts
+import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
+...
+
+this.createS3NotifyToLambda(folderInput,laombda,bucket)
+...
+createS3NotifyToLambda(prefix: string, lambda: lambda.IFunction, bucket: s3.IBucket): void {
+  const destination = new s3n.LambdaDestination(lambda);
+    bucket.addEventNotification(s3.EventType.OBJECT_CREATED_PUT,
+    destination,
+    { prefix: prefix }
+  )
+}
+```
+
+![S3 Event Notification](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_8/S3_Event_Notification.PNG)
+
+- Now instead of destroying and recreating the bucket, we'll just import it by name like this:
+
+```ts
+  const bucket = this.importBucket(bucketName);
+  ...
+  importBucket(bucketName: string): s3.IBucket {
+    const bucket = s3.Bucket.fromBucketName(this, "AssetsBucket", bucketName);
+    return bucket;
+  }
+```
+
+## Create and Attach to Lambda the Policy for Bucket Access
+
+```ts
+const s3ReadWritePolicy = this.createPolicyBucketAccess(bucket.bucketArn);
+lambda.addToRolePolicy(s3ReadWritePolicy);
+```
+
+## Test the Lambda function
+
+- To test our Lambda, let's put an image into the `original` folder in the bucket. To do so, we can create scripts to create and clear data uploaded in `bin/serverless`:
+
+```
+bin/serverless
+  |_ clear : Deletes the file data.jpg* from our *assets.cruddur-app.click* bucket
+  |_ upload : Uploads a file located in *bin/serverless/files/data.jpg* to our *assets.cruddur-app.click* bucket
+```
+
+`bin/serverless/clear`:
+```sh
+#! /usr/bin/bash
+
+ABS_PATH=$(readlink -f "$0")
+SERVERLESS_PATH=$(dirname $ABS_PATH)
+DATA_FILE_PATH="$SERVERLESS_PATH/files/data.jpg"
+
+aws s3 rm "s3://assets.$DOMAIN_NAME/avatars/original/data.jpg"
+aws s3 rm "s3://assets.$DOMAIN_NAME/avatars/processed/data.jpg"
+```
+
+`bin/serverless/upload`:
+```sh
+#! /usr/bin/bash
+
+ABS_PATH=$(readlink -f "$0")
+SERVERLESS_PATH=$(dirname $ABS_PATH)
+DATA_FILE_PATH="$SERVERLESS_PATH/files/data.jpg"
+
+aws s3 cp "$DATA_FILE_PATH" "s3://assets.$DOMAIN_NAME/avatars/original/data.jpg"
+```
+
+- On running the upload script, we can see that when the `data.jpg` file is put in the bucket, it triggers the Lambda function that processes the picture and creates a new avatar in the same bucket in `avatars/processed`:
+
+![Image Uploaded](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_8/Image_Uploaded.PNG)

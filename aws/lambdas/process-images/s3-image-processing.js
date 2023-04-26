@@ -6,13 +6,13 @@ function getClient(){
   return client;
 }
 
-async function getOriginalImage(client,srcBucket,srcKey){
-  console.log('get==')
+async function getOriginalImage(client, srcBucket, srcKey){
+  console.log('GET == ')
   const params = {
     Bucket: srcBucket,
     Key: srcKey
   };
-  console.log('params',params)
+  console.log('params : ', params)
   const command = new GetObjectCommand(params);
   const response = await client.send(command);
 
@@ -24,7 +24,7 @@ async function getOriginalImage(client,srcBucket,srcKey){
   return buffer;
 }
 
-async function processImage(image,width,height){
+async function processImage(image, width, height){
   const processedImage = await sharp(image)
     .resize(width, height)
     .jpeg()
@@ -32,18 +32,18 @@ async function processImage(image,width,height){
   return processedImage;
 }
 
-async function uploadProcessedImage(client,dstBucket,dstKey,image){
-  console.log('upload==')
+async function uploadProcessedImage(client, dstBucket, dstKey, image){
+  console.log('UPLOAD == ')
   const params = {
     Bucket: dstBucket,
     Key: dstKey,
     Body: image,
     ContentType: 'image/jpeg'
   };
-  console.log('params',params)
+  console.log('params : ', params)
   const command = new PutObjectCommand(params);
   const response = await client.send(command);
-  console.log('repsonse',response);
+  console.log('response : ', response);
   return response;
 }
 
