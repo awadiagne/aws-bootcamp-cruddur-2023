@@ -327,3 +327,28 @@ aws s3 cp "$DATA_FILE_PATH" "s3://assets.$DOMAIN_NAME/avatars/original/data.jpg"
 - On running the upload script, we can see that when the `data.jpg` file is put in the bucket, it triggers the Lambda function that processes the picture and creates a new avatar in the same bucket in `avatars/processed`:
 
 ![Image Uploaded](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_8/Image_Uploaded.PNG)
+
+## Create SNS Topic and Susbcription
+
+```ts
+import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
+import * as sns from 'aws-cdk-lib/aws-sns';
+...
+const snsTopic = this.createSnsTopic(topicName);
+this.createSnsSubscription(snsTopic,webhookUrl);
+...
+createSnsTopic(topicName: string): sns.ITopic{
+  const logicalName = "Topic";
+  const snsTopic = new sns.Topic(this, logicalName, {
+    topicName: topicName
+  });
+  return snsTopic;
+}
+
+createSnsSubscription(snsTopic: sns.ITopic, webhookUrl: string): sns.Subscription {
+  const snsSubscription = snsTopic.addSubscription(
+    new subscriptions.UrlSubscription(webhookUrl)
+  )
+  return snsSubscription;
+}
+```
