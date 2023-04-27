@@ -352,3 +352,32 @@ createSnsSubscription(snsTopic: sns.ITopic, webhookUrl: string): sns.Subscriptio
   return snsSubscription;
 }
 ```
+
+## Using CloudFront as CDN for the images
+
+Amazon CloudFront is a fast content delivery network (CDN) service that securely delivers data, videos, applications, and APIs to customers globally with low latency, high transfer speeds, all within a developer-friendly environment. CloudFront offers a cache to improve latency and lower the load on your origin servers.
+
+Let's create a CloudFront distribution that points to our S3 bucket in the console. Then, we'll update the bucket policy to make it accessible from CloudFront.
+
+### Create separate buckets for the uploaded images and the avatars 
+
+```ts
+const uploadsBucketName: string = process.env.UPLOADS_BUCKET_NAME as string;
+const assetsBucketName: string = process.env.ASSETS_BUCKET_NAME as string;
+...
+const uploadsBucket = this.createBucket(uploadsBucketName);
+const assetsBucket = this.importBucket(assetsBucketName);
+const lambda = this.createLambda(folderInput, folderOutput, functionPath, assetsBucketName);
+
+// Create and Attach policies for S3 access
+const s3ReadWritePolicyForUploads = this.createPolicyBucketAccess(uploadsBucket.bucketArn)
+const s3ReadWritePolicyForAssets = this.createPolicyBucketAccess(assetsBucket.bucketArn)
+lambda.addToRolePolicy(s3ReadWritePolicyForUploads);
+lambda.addToRolePolicy(s3ReadWritePolicyForAssets);
+
+// Add our s3 event notifications
+this.createS3NotifyToLambda(folderInput, lambda, uploadsBucket);
+```
+
+- We also want the original images to be deleted from the uploads bucket to save space and cost. So, we'll implement a Lifecycle Configuration to set a TTL on the objects :
+
