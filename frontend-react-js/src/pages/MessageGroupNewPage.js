@@ -59,8 +59,8 @@ export default function MessageGroupPage() {
   };  
 
   React.useEffect(()=>{
-    //prevents double call
-    if (dataFetchedRef.current) return;
+    if (dataFetchedRef.current)
+      return;
     dataFetchedRef.current = true;
 
     loadMessageGroupsData();

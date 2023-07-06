@@ -379,5 +379,88 @@ lambda.addToRolePolicy(s3ReadWritePolicyForAssets);
 this.createS3NotifyToLambda(folderInput, lambda, uploadsBucket);
 ```
 
-- We also want the original images to be deleted from the uploads bucket to save space and cost. So, we'll implement a Lifecycle Configuration to set a TTL on the objects :
+## Implement User Edit Page
 
+## Create show.sql
+
+- We first create a SQL request to fetch the user's profile details:
+backend-flask/db/sql/users/show.sql:
+
+```sql
+SELECT 
+  (SELECT COALESCE(row_to_json(object_row),'{}'::json) FROM (
+    SELECT
+      users.uuid,
+      users.handle,
+      users.display_name,
+      (
+       SELECT 
+        count(true) 
+       FROM public.activities
+       WHERE
+        activities.user_uuid = users.uuid
+       ) as cruds_count
+  ) object_row) as profile,
+  (SELECT COALESCE(array_to_json(array_agg(row_to_json(array_row))),'[]'::json) FROM (
+    SELECT
+      activities.uuid,
+      users.display_name,
+      users.handle,
+      activities.message,
+      activities.created_at,
+      activities.expires_at
+    FROM public.activities
+    WHERE
+      activities.user_uuid = users.uuid
+    ORDER BY activities.created_at DESC 
+    LIMIT 40
+  ) array_row) as activities
+FROM public.users
+WHERE
+  users.handle = %(handle)s
+```
+- We then use those details to map them into the user profile and his activity feed:
+backend-flask/services/user_activities:
+```py
+if user_handle == None or len(user_handle) < 1:
+      model['errors'] = ['blank_user_handle']
+    else:
+      print("else:")
+      sql = db.template('users','show')
+      results = db.query_object_json(sql,{'handle': user_handle})
+      model['data'] = results
+```
+
+- Here, we display the profile header with the banner image, the avatar and Edit Profile button:
+```js
+import './ProfileHeading.css';
+import EditProfileButton from '../components/EditProfileButton';
+
+export default function ProfileHeading(props) {
+  const backgroundImage = 'url("https://assets.cruddur.com/banners/banner.jpg")';
+  const styles = {
+    backgroundImage: backgroundImage,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  };
+  return (
+  <div className='activity_feed_heading profile_heading'>
+    <div className='title'>{props.profile.display_name}</div>
+    <div className="cruds_count">{props.profile.cruds_count} Cruds</div>
+    <div class="banner" style={styles} >
+      <div className="avatar">
+        <img src="https://assets.cruddur.com/avatars/data.jpg"></img>
+      </div>
+    </div>
+    <div class="info">
+      <div class='id'>
+        <div className="display_name">{props.profile.display_name}</div>
+        <div className="handle">@{props.profile.handle}</div>
+      </div>
+      <EditProfileButton setPopped={props.setPopped} />
+    </div>
+
+  </div>
+  );
+}
+```
