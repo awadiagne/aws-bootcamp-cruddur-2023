@@ -5,7 +5,7 @@ export default function ProfileAvatar(props) {
   const styles = {
     backgroundImage: backgroundImage,
     backgroundSize: 'cover',
-    backgroundPosition: 'center',Ò
+    backgroundPosition: 'center'
   };
 
   return (
