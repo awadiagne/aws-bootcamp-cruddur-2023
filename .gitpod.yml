@@ -9,7 +9,8 @@ tasks:
       sudo ./aws/install
       rm -rf awscliv2.zip aws/
       cd $THEIA_WORKSPACE_ROOT
-  
+      bash bin/ecr/login
+
   - name: postgres
     before: |
       curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc|sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
@@ -22,11 +23,13 @@ tasks:
   
   - name: react-js
     command: |
+      ruby $THEIA_WORKSPACE_ROOT/bin/frontend/generate-env
       cd frontend-react-js
       npm i
   
   - name: flask
     command: |
+      ruby $THEIA_WORKSPACE_ROOT/bin/backend/generate-env
       cd backend-flask
       pip install -r requirements.txt
   
