@@ -20,7 +20,7 @@ GEM
     jmespath (1.6.2)
     jwt (2.7.0)
     ox (2.14.15)
-Ò
+
 PLATFORMS
   x86_64-linux
 
