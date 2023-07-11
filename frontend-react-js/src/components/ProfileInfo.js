@@ -18,7 +18,7 @@ export default function ProfileInfo(props) {
         window.location.href = "/"
         localStorage.removeItem("access_token")
     } catch (error) {
-        console.log('error signing out: ', error);
+        console.log('Error signing out: ', error);
     }
   }
 
