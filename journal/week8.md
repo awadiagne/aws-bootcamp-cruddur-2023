@@ -464,3 +464,25 @@ export default function ProfileHeading(props) {
   );
 }
 ```
+
+## Create the API Gateway
+
+We need to generate a pre-signed URL after authentication to an API endpoint. Then, we'll use it to post the avatar we want to upload. To do so, we'll need an API Gateway.
+
+Amazon API Gateway is a fully managed service that makes it easy for developers to create, publish, maintain, monitor, and secure APIs at any scale. 
+
+- We'll also create the Lambda and grant it the right permissions. The code for the Lambda is in `aws/lambdas/cruddur-upload-avatar/function.rb` and the policy in `aws/lambdas/policies/s3-upload-avatar-presigned-url-policy.json`.
+
+- We'll need to import JWT into the Lambda environment. We create the `aws/lambdas/lambda-authorizer` folder and import the JWT package into the package.json. After running `npm i`, we'll have the `node-modules` folder and `package-lock.json`. We also create `index.js` inside the new folder to implement the use of JWT.
+
+- Now, we create a new Lambda function called `CruddurLambdaAuthorizer` where we upload the zipped version of the Lambda authorizer with JWT code.
+
+- Now, we can create the API on Amazon API Gateway. Let's go for an HTTP API
+
+![Create API](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_8/Create_API.PNG)
+
+![Config Routes](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_8/Config_Routes.PNG)
+
+- Then, we can attach the authorizer:
+
+![Attach Authorizer](https://github.com/awadiagne/aws-bootcamp-cruddur-2023/blob/main/journal/screenshots/Week_8/Attach_Authorizer.PNG)
